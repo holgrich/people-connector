@@ -11,7 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { chat, transcribeAudio, type Message } from '../lib/mistral';
+import { chat, extractProfile, transcribeAudio, type Message } from '../lib/mistral';
+import { saveProfile } from '../lib/profiles';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 
 type UIMessage = Message & { id: string };
@@ -52,6 +53,15 @@ export default function ChatScreen() {
     const newHistory = [...messages, userMessage];
     setMessages(newHistory);
     setInput('');
+
+    // Silently update profile every 5 user messages (fire-and-forget)
+    const userCount = newHistory.filter((m) => m.role === 'user').length;
+    if (userCount > 0 && userCount % 5 === 0) {
+      extractProfile(newHistory)
+        .then((scores) => saveProfile(scores, userCount))
+        .catch(() => {}); // profile update failure is non-critical
+    }
+
     await sendToAI(newHistory);
   }
 
