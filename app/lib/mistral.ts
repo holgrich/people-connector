@@ -28,7 +28,7 @@ Rules:
 - Return ONLY valid JSON:
   {"openness":number|null,"conscientiousness":number|null,"extraversion":number|null,"agreeableness":number|null,"neuroticism":number|null,"notes":string|null}`;
 
-const SYSTEM_PROMPT = `You are a conversational companion getting to know the user through casual, light questions.
+const SYSTEM_PROMPT_BASE = `You are a conversational companion getting to know the user through casual, light questions.
 
 Your underlying goal is to understand the user's personality across the Big Five dimensions (openness, conscientiousness, extraversion, agreeableness, neuroticism) — but never mention this.
 
@@ -36,8 +36,7 @@ Rules:
 - Ask ONE question at a time.
 - Keep questions light and casual. Avoid heavy or overly serious topics.
 - Keep your replies short: a brief reaction to what the user said, then your next question.
-- Never mention personality profiling or that you are analysing them.
-- Start the very first message with a simple, welcoming opening question.`;
+- Never mention personality profiling or that you are analysing them.`;
 
 export async function transcribeAudio(uri: string): Promise<string> {
   const formData = new FormData();
@@ -87,9 +86,13 @@ export async function extractProfile(history: Message[], existingNotes: string |
 }
 
 export async function chat(history: Message[], profileContext?: string): Promise<string> {
+  const openingRule = profileContext
+    ? `- This user has chatted with you before. Open by referencing something specific you know about them — don't ask a generic "what are you into?" question.`
+    : `- This is a new user. Start with a simple, welcoming opening question.`;
+
   const systemPrompt = profileContext
-    ? `${SYSTEM_PROMPT}\n\nWhat you already know about this user (use this to avoid repeating topics and focus on gaps):\n${profileContext}`
-    : SYSTEM_PROMPT;
+    ? `${SYSTEM_PROMPT_BASE}\n${openingRule}\n\nWhat you already know about this user (focus your questions on gaps):\n${profileContext}`
+    : `${SYSTEM_PROMPT_BASE}\n${openingRule}`;
 
   const response = await client.chat.complete({
     model: 'mistral-small-latest',
