@@ -91,13 +91,15 @@ Users can browse a pool of nearby people (target: within walking/cycling distanc
 
 ---
 
-### Phase 1 · AI Q&A Screen (Product 1, no profile yet) ← *current*
+### Phase 1 · AI Q&A Screen (Product 1, no profile yet) `[x]`
 
-- `[ ]` Screen: question display + text input + submit
-- `[ ]` Send user answer to Mistral, receive next question + optional fun response
-- `[ ]` Display conversation (scrollable chat-like view)
-- `[ ]` Define Mistral prompt: entertaining question style, occasional witty reply
-- `[ ]` Voice input → STT → text field (deferred until dev build)
+- `[x]` Screen: question display + text input + submit
+- `[x]` Send user answer to Mistral, receive next question
+- `[x]` Display conversation (scrollable chat-like view)
+- `[x]` Mistral prompt: light/casual questions, Big Five as hidden goal, no ratio enforced
+- `[x]` Voice input via Voxtral STT (works in browser; native needs dev build)
+
+> **Future idea:** feed known profile data back into the system prompt so the AI adapts its style — e.g. skip humour for users who don't respond to it, or focus on gaps in the Big Five coverage. Defer until profiles are more established.
 
 ---
 
