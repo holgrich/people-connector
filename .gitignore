@@ -1,0 +1,17 @@
+# Expo / React Native
+app/node_modules/
+app/.expo/
+app/dist/
+app/build/
+
+# Environment variables (never commit these)
+.env
+.env.local
+app/.env
+app/.env.local
+
+# macOS
+.DS_Store
+
+# Supabase local dev
+supabase/.temp/
