@@ -59,7 +59,7 @@ export default function ChatScreen() {
     if (userCount > 0 && userCount % 5 === 0) {
       extractProfile(newHistory)
         .then((scores) => saveProfile(scores, userCount))
-        .catch(() => {}); // profile update failure is non-critical
+        .catch(() => {});
     }
 
     await sendToAI(newHistory);
