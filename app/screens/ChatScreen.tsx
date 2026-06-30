@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { chat, extractProfile, transcribeAudio, type Message } from '../lib/mistral';
-import { buildProfileContext, loadProfile, saveProfile, type BigFive } from '../lib/profiles';
+import { buildProfileContext, loadProfile, saveProfile, type BigFive, type Profile } from '../lib/profiles';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 
 type UIMessage = Message & { id: string };
@@ -22,7 +22,7 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
-  const profileRef = useRef<BigFive | null>(null);
+  const profileRef = useRef<Profile | null>(null);
   const listRef = useRef<FlatList>(null);
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
 
@@ -38,7 +38,8 @@ export default function ChatScreen() {
     setLoading(true);
     try {
       const context = profileContext ?? (profileRef.current ? buildProfileContext(profileRef.current) : undefined);
-      const reply = await chat(history, context);
+      const msgCount = profileRef.current?.message_count ?? 0;
+      const reply = await chat(history, context, msgCount);
       const aiMessage: UIMessage = { id: Date.now().toString(), role: 'assistant', content: reply };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (e) {

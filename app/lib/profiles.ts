@@ -28,17 +28,25 @@ export async function saveProfile(scores: BigFive, messageCount: number): Promis
   await supabase.from('profiles').upsert(updates);
 }
 
-export async function loadProfile(): Promise<BigFive | null> {
+export type Profile = BigFive & { message_count: number };
+
+export async function loadProfile(): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, notes')
+    .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, notes, message_count')
     .single();
 
   if (error || !data) return null;
-  return data as BigFive;
+  return data as Profile;
 }
 
-export function buildProfileContext(profile: BigFive): string {
+export function familiarityLevel(messageCount: number): 'new' | 'acquainted' | 'familiar' {
+  if (messageCount < 15) return 'new';
+  if (messageCount < 50) return 'acquainted';
+  return 'familiar';
+}
+
+export function buildProfileContext(profile: Profile): string {
   const traits: string[] = [];
   if (profile.openness !== null)          traits.push(`openness ${profile.openness}/100`);
   if (profile.conscientiousness !== null) traits.push(`conscientiousness ${profile.conscientiousness}/100`);

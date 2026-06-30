@@ -1,5 +1,6 @@
 import { Mistral } from '@mistralai/mistralai';
-import type { BigFive } from './profiles';
+import type { BigFive, Profile } from './profiles';
+import { familiarityLevel } from './profiles';
 
 const client = new Mistral({
   apiKey: process.env.EXPO_PUBLIC_MISTRAL_API_KEY!,
@@ -85,13 +86,24 @@ export async function extractProfile(history: Message[], existingNotes: string |
   return JSON.parse(text) as BigFive;
 }
 
-export async function chat(history: Message[], profileContext?: string): Promise<string> {
+const FAMILIARITY_RULES = {
+  new: `- This is a new or barely known user. Ask broad, exploratory questions. Do NOT reference their known facts in your opening — ease in naturally.`,
+  acquainted: `- You know this user a little. You may occasionally reference something they've explicitly mentioned, but keep questions open-ended and don't linger on one topic.`,
+  familiar: `- You know this user reasonably well. You can ask follow-up questions on things they've actually told you. Stay light and casual.`,
+};
+
+export async function chat(history: Message[], profileContext?: string, msgCount = 0): Promise<string> {
+  const level = familiarityLevel(msgCount);
   const openingRule = profileContext
-    ? `- This user has chatted with you before. Open by referencing something specific you know about them — don't ask a generic "what are you into?" question.`
+    ? FAMILIARITY_RULES[level]
     : `- This is a new user. Start with a simple, welcoming opening question.`;
 
+  const referenceRule = profileContext
+    ? `- IMPORTANT: Only reference things the user has explicitly told you. Never infer, elaborate, or assume details beyond what is written in the known facts.`
+    : '';
+
   const systemPrompt = profileContext
-    ? `${SYSTEM_PROMPT_BASE}\n${openingRule}\n\nWhat you already know about this user (focus your questions on gaps):\n${profileContext}`
+    ? `${SYSTEM_PROMPT_BASE}\n${openingRule}\n${referenceRule}\n\nWhat you already know about this user:\n${profileContext}`
     : `${SYSTEM_PROMPT_BASE}\n${openingRule}`;
 
   const response = await client.chat.complete({
