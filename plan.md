@@ -80,13 +80,15 @@ Users can browse a pool of nearby people (target: within walking/cycling distanc
 ### Phase 0 · Foundation `[ ]`
 
 - `[x]` Set up project repository (this repo)
-- `[ ]` **Choose and confirm tech stack** ← *current*
-- `[ ]` Initialize Expo project (`npx create-expo-app`)
-- `[ ]` Set up Supabase project + connect to app
+- `[x]` Choose and confirm tech stack: Expo + Supabase + Mistral + Whisper
+- `[x]` Initialize Expo project (`app/` subdirectory, SDK 56, TypeScript)
+- `[x]` Set up Supabase project + connect to app (verified in browser)
 - `[ ]` Get Mistral API key
 - `[ ]` Get OpenAI API key (for Whisper)
+- `[ ]` Email auth: sign up, log in, log out (via Supabase Auth) ← *current*
 - `[ ]` Basic app shell: tab/screen navigation skeleton
-- `[ ]` Email auth: sign up, log in, log out (via Supabase Auth)
+
+> **Note on device testing:** Expo Go on App Store doesn't support SDK 56 yet. Using browser (`npx expo start --web`) for now. A development build (requires Xcode) will be needed before testing native features like microphone.
 
 ---
 
