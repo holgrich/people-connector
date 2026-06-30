@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -10,15 +11,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { chat, type Message } from '../lib/mistral';
+import { chat, transcribeAudio, type Message } from '../lib/mistral';
+import { useAudioRecorder } from '../hooks/useAudioRecorder';
+
+type UIMessage = Message & { id: string };
 
 export default function ChatScreen() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const listRef = useRef<FlatList>(null);
+  const { isRecording, startRecording, stopRecording } = useAudioRecorder();
 
-  // Kick off the first question from the AI when the screen loads
   useEffect(() => {
     sendToAI([]);
   }, []);
@@ -27,28 +32,54 @@ export default function ChatScreen() {
     setLoading(true);
     try {
       const reply = await chat(history);
-      const aiMessage: Message = { role: 'assistant', content: reply };
+      const aiMessage: UIMessage = { id: Date.now().toString(), role: 'assistant', content: reply };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (e) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Oops, something went wrong. Try again!' },
+        { id: Date.now().toString(), role: 'assistant', content: 'Oops, something went wrong. Try again!' },
       ]);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || loading) return;
+  async function handleSend(text?: string) {
+    const content = (text ?? input).trim();
+    if (!content || loading) return;
 
-    const userMessage: Message = { role: 'user', content: text };
+    const userMessage: UIMessage = { id: Date.now().toString(), role: 'user', content };
     const newHistory = [...messages, userMessage];
     setMessages(newHistory);
     setInput('');
     await sendToAI(newHistory);
   }
+
+  async function handleMicPress() {
+    if (isRecording) {
+      // Stop and transcribe
+      try {
+        setTranscribing(true);
+        const uri = await stopRecording();
+        if (!uri) return;
+        const text = await transcribeAudio(uri);
+        if (text) await handleSend(text);
+      } catch (e: any) {
+        Alert.alert('Error', e.message ?? 'Transcription failed.');
+      } finally {
+        setTranscribing(false);
+      }
+    } else {
+      // Start recording
+      try {
+        await startRecording();
+      } catch (e: any) {
+        Alert.alert('Error', e.message ?? 'Could not start recording.');
+      }
+    }
+  }
+
+  const isbusy = loading || transcribing;
 
   return (
     <KeyboardAvoidingView
@@ -59,7 +90,7 @@ export default function ChatScreen() {
       <FlatList
         ref={listRef}
         data={messages}
-        keyExtractor={(_, i) => String(i)}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         renderItem={({ item }) => (
@@ -70,25 +101,39 @@ export default function ChatScreen() {
           </View>
         )}
         ListFooterComponent={
-          loading ? (
+          isbusy ? (
             <View style={styles.typingIndicator}>
               <ActivityIndicator size="small" color="#999" />
+              {transcribing && <Text style={styles.transcribingLabel}>Transcribing…</Text>}
             </View>
           ) : null
         }
       />
 
       <View style={styles.inputRow}>
+        <TouchableOpacity
+          style={[styles.micButton, isRecording && styles.micButtonActive]}
+          onPress={handleMicPress}
+          disabled={isbusy}
+        >
+          <Text style={styles.micIcon}>{isRecording ? '⏹' : '🎤'}</Text>
+        </TouchableOpacity>
+
         <TextInput
           style={styles.input}
-          placeholder="Type your answer…"
+          placeholder={isRecording ? 'Recording…' : 'Type your answer…'}
           value={input}
           onChangeText={setInput}
-          onSubmitEditing={handleSend}
+          onSubmitEditing={() => handleSend()}
           returnKeyType="send"
-          editable={!loading}
+          editable={!isbusy && !isRecording}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={loading}>
+
+        <TouchableOpacity
+          style={[styles.sendButton, (!input.trim() || isbusy || isRecording) && styles.sendButtonDisabled]}
+          onPress={() => handleSend()}
+          disabled={!input.trim() || isbusy || isRecording}
+        >
           <Text style={styles.sendText}>Send</Text>
         </TouchableOpacity>
       </View>
@@ -129,8 +174,14 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   typingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 12,
-    alignSelf: 'flex-start',
+    gap: 8,
+  },
+  transcribingLabel: {
+    fontSize: 13,
+    color: '#999',
   },
   inputRow: {
     flexDirection: 'row',
@@ -139,6 +190,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: '#eee',
     backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micButtonActive: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#ef4444',
+  },
+  micIcon: {
+    fontSize: 18,
   },
   input: {
     flex: 1,
@@ -153,8 +221,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 20,
     paddingHorizontal: 18,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#ccc',
   },
   sendText: {
     color: '#fff',
