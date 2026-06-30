@@ -58,28 +58,35 @@ Users can browse a pool of nearby people (target: within walking/cycling distanc
 
 ## Technical Stack
 
+> **Decision criteria:** cross-platform (one codebase for iOS + Android), easy to implement, easy for AI to write real code for, cheap, microphone must work.
+
 | Layer | Choice | Notes |
 |---|---|---|
-| App framework | **FlutterFlow** | Confirmed; web-based visual builder, deploys iOS + Android. ⚠️ Microphone access is a blocker — see Open Questions |
-| AI | **Mistral API** | Model selection TBD; used for question generation, response logic, profile extraction |
-| Voice input | **Whisper** (OpenAI) or device-native STT | Native STT is free but wasn't working in FlutterFlow; Whisper via API is reliable fallback |
-| Auth | Email + password (to start) | Social login (Google, Apple) can come later |
-| Backend | **Firebase** | Already started; free tier covers hobby scale. Note: Firebase is managed via web console — prefer CLI-based tools if switching |
-| Location | Device GPS | Only used for proximity matching in Product 2 |
+| App framework | **Expo (React Native)** | JavaScript/TypeScript; one codebase for iOS + Android; microphone works natively; huge ecosystem; no Xcode/Android Studio needed to start |
+| AI | **Mistral API** | Question generation, response logic, profile extraction. `mistral-small` is cheapest; upgrade to `mistral-large` if quality needs it |
+| Voice input | **Expo AV + Whisper API** | Record audio with Expo's built-in audio library, send to OpenAI Whisper for transcription |
+| Auth | **Supabase Auth** — email + password to start | Social login (Google, Apple) can come later |
+| Backend | **Supabase** | PostgreSQL; great CLI; free tier; open source; SQL is better than NoSQL for matching/querying profiles |
+| Location | Device GPS via **Expo Location** | Only used for proximity matching in Product 2 |
+
+### Previously explored (not chosen)
+- **FlutterFlow** — tried previously; microphone access was a blocker; visual builder limits what code can be written directly
+- **Firebase** — tried previously; functional but web-console-only management is inconvenient; NoSQL is less suitable for profile matching queries
 
 ---
 
 ## Implementation Phases
 
-### Phase 0 · Foundation `[~]`
+### Phase 0 · Foundation `[ ]`
 
-- `[x]` Confirm app framework: FlutterFlow
-- `[x]` Set up backend: Firebase (started)
 - `[x]` Set up project repository (this repo)
-- `[ ]` **Resolve microphone / voice input blocker** ← *next immediate task*
-- `[ ]` Set up Mistral API account and get API key
-- `[ ]` Basic app shell: splash screen, navigation skeleton
-- `[ ]` Email auth: sign up, log in, log out
+- `[ ]` **Choose and confirm tech stack** ← *current*
+- `[ ]` Initialize Expo project (`npx create-expo-app`)
+- `[ ]` Set up Supabase project + connect to app
+- `[ ]` Get Mistral API key
+- `[ ]` Get OpenAI API key (for Whisper)
+- `[ ]` Basic app shell: tab/screen navigation skeleton
+- `[ ]` Email auth: sign up, log in, log out (via Supabase Auth)
 
 ---
 
@@ -129,11 +136,9 @@ Users can browse a pool of nearby people (target: within walking/cycling distanc
 
 ## Open Questions
 
-- [x] Confirm app framework: **FlutterFlow**
-- [x] Backend: **Firebase** (already started)
 - [x] After a match: no in-app chat — app suggests specific real-world meetup
-- [ ] **Blocker: Microphone in FlutterFlow** — native STT didn't work; options: (a) custom FlutterFlow action using a plugin, (b) switch to Whisper API (audio recorded in-app, sent to Whisper), (c) export FlutterFlow to Flutter code and add native mic plugin manually
-- [ ] Mistral model to use (e.g. `mistral-small` for cost, `mistral-large` for quality)
+- [ ] **Confirm tech stack:** Expo + Supabase as recommended, or different preference?
+- [ ] Mistral model: `mistral-small` (cheap, fast) vs `mistral-large` (smarter, pricier) — start small, upgrade if needed
 - [ ] Privacy model for location: how coarse? Neighborhood? City district?
 - [ ] App name
 - [ ] After a match: share contact details directly, or only via app-suggested plan?
@@ -152,4 +157,4 @@ Users can browse a pool of nearby people (target: within walking/cycling distanc
 
 ---
 
-*Last updated: 2026-06-30 (session 2 — FlutterFlow confirmed, Firebase chosen, mic blocker identified, no-chat philosophy set)*
+*Last updated: 2026-06-30 (session 2 — stack reconsidered; recommended Expo + Supabase; no-chat philosophy set)*
