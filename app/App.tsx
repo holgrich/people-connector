@@ -5,10 +5,14 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import AuthScreen from './screens/AuthScreen';
 import ChatScreen from './screens/ChatScreen';
+import ProfileScreen from './screens/ProfileScreen';
+
+type Tab = 'chat' | 'profile';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Tab>('chat');
   const [chatKey, setChatKey] = useState(0);
 
   useEffect(() => {
@@ -39,22 +43,42 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
+
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>People Connector</Text>
           <Text style={styles.email}>{session.user.email}</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setChatKey((k) => k + 1)}>
-            <Text style={styles.action}>New chat</Text>
-          </TouchableOpacity>
-          <Text style={styles.separator}>·</Text>
+          {tab === 'chat' && (
+            <>
+              <TouchableOpacity onPress={() => setChatKey((k) => k + 1)}>
+                <Text style={styles.action}>New chat</Text>
+              </TouchableOpacity>
+              <Text style={styles.separator}>·</Text>
+            </>
+          )}
           <TouchableOpacity onPress={() => supabase.auth.signOut()}>
             <Text style={styles.action}>Sign out</Text>
           </TouchableOpacity>
         </View>
       </View>
-      <ChatScreen key={chatKey} />
+
+      <View style={styles.content}>
+        {tab === 'chat'
+          ? <ChatScreen key={chatKey} />
+          : <ProfileScreen />
+        }
+      </View>
+
+      <View style={styles.tabBar}>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab('chat')}>
+          <Text style={[styles.tabLabel, tab === 'chat' && styles.tabActive]}>Chat</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab('profile')}>
+          <Text style={[styles.tabLabel, tab === 'profile' && styles.tabActive]}>Profile</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -99,7 +123,28 @@ const styles = StyleSheet.create({
   },
   separator: {
     color: '#ccc',
+  },
+  content: {
+    flex: 1,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderColor: '#eee',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  tabLabel: {
     fontSize: 14,
+    color: '#bbb',
+    fontWeight: '500',
+  },
+  tabActive: {
+    color: '#000',
+    fontWeight: '700',
   },
   muted: {
     color: '#999',
