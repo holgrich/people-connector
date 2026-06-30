@@ -9,6 +9,7 @@ import ChatScreen from './screens/ChatScreen';
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chatKey, setChatKey] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -39,12 +40,21 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>People Connector</Text>
-        <TouchableOpacity onPress={() => supabase.auth.signOut()}>
-          <Text style={styles.signOut}>Sign out</Text>
-        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>People Connector</Text>
+          <Text style={styles.email}>{session.user.email}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setChatKey((k) => k + 1)}>
+            <Text style={styles.action}>New chat</Text>
+          </TouchableOpacity>
+          <Text style={styles.separator}>·</Text>
+          <TouchableOpacity onPress={() => supabase.auth.signOut()}>
+            <Text style={styles.action}>Sign out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <ChatScreen />
+      <ChatScreen key={chatKey} />
     </View>
   );
 }
@@ -73,8 +83,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  signOut: {
+  email: {
+    fontSize: 11,
     color: '#999',
+    marginTop: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  action: {
+    color: '#999',
+    fontSize: 14,
+  },
+  separator: {
+    color: '#ccc',
     fontSize: 14,
   },
   muted: {
