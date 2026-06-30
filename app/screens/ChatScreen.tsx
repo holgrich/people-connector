@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { chat, extractProfile, transcribeAudio, type Message } from '../lib/mistral';
-import { saveProfile } from '../lib/profiles';
+import { buildProfileContext, loadProfile, saveProfile, type BigFive } from '../lib/profiles';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 
 type UIMessage = Message & { id: string };
@@ -22,17 +22,23 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const profileRef = useRef<BigFive | null>(null);
   const listRef = useRef<FlatList>(null);
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
 
   useEffect(() => {
-    sendToAI([]);
+    loadProfile().then((profile) => {
+      profileRef.current = profile;
+      const context = profile ? buildProfileContext(profile) : undefined;
+      sendToAI([], context);
+    });
   }, []);
 
-  async function sendToAI(history: Message[]) {
+  async function sendToAI(history: Message[], profileContext?: string) {
     setLoading(true);
     try {
-      const reply = await chat(history);
+      const context = profileContext ?? (profileRef.current ? buildProfileContext(profileRef.current) : undefined);
+      const reply = await chat(history, context);
       const aiMessage: UIMessage = { id: Date.now().toString(), role: 'assistant', content: reply };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (e) {
@@ -57,8 +63,12 @@ export default function ChatScreen() {
     // Silently update profile every 5 user messages (fire-and-forget)
     const userCount = newHistory.filter((m) => m.role === 'user').length;
     if (userCount > 0 && userCount % 5 === 0) {
-      extractProfile(newHistory)
-        .then((scores) => saveProfile(scores, userCount))
+      const existingNotes = profileRef.current?.notes ?? null;
+      extractProfile(newHistory, existingNotes)
+        .then((scores) => {
+          profileRef.current = scores;
+          return saveProfile(scores, userCount);
+        })
         .catch(() => {});
     }
 

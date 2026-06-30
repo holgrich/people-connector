@@ -11,21 +11,22 @@ export type Message = {
 };
 
 const PROFILE_EXTRACTION_PROMPT = `You are a personality psychologist trained in the Big Five (OCEAN) model.
-Analyse the user's messages from the conversation below and estimate their personality scores.
+Analyse the user's messages and extract two things:
 
-Score each trait 0–100:
-- openness:          0 = very conventional/practical, 100 = very curious/creative/open to new experiences
-- conscientiousness: 0 = spontaneous/disorganised, 100 = disciplined/reliable/organised
-- extraversion:      0 = very introverted/reserved, 100 = very extraverted/energetic/social
-- agreeableness:     0 = challenging/competitive, 100 = cooperative/empathetic/trusting
-- neuroticism:       0 = emotionally stable/calm, 100 = anxious/emotionally reactive
+1. Big Five scores (0–100 each):
+- openness:          0 = conventional/practical, 100 = curious/creative/open
+- conscientiousness: 0 = spontaneous/disorganised, 100 = disciplined/reliable
+- extraversion:      0 = introverted/reserved, 100 = extraverted/social
+- agreeableness:     0 = challenging/competitive, 100 = cooperative/empathetic
+- neuroticism:       0 = emotionally stable, 100 = anxious/reactive
+
+2. A short "notes" string of concrete facts mentioned by the user (hobbies, job, life situation, preferences). Max 100 words, comma-separated. Update and merge with any existing notes if provided.
 
 Rules:
-- Only score a trait if you have clear, direct evidence in the user's words. Use null otherwise.
-- NEVER infer or record: sexuality, religion, politics, ethnicity, health, or income.
-- Base scores only on what the user actually said — do not assume.
-- Return ONLY valid JSON, no explanation:
-  {"openness":number|null,"conscientiousness":number|null,"extraversion":number|null,"agreeableness":number|null,"neuroticism":number|null}`;
+- Only score a trait if you have clear evidence. Use null otherwise.
+- NEVER record: sexuality, religion, politics, ethnicity, health, or income.
+- Return ONLY valid JSON:
+  {"openness":number|null,"conscientiousness":number|null,"extraversion":number|null,"agreeableness":number|null,"neuroticism":number|null,"notes":string|null}`;
 
 const SYSTEM_PROMPT = `You are a conversational companion getting to know the user through casual, light questions.
 
@@ -42,12 +43,10 @@ export async function transcribeAudio(uri: string): Promise<string> {
   const formData = new FormData();
 
   if (uri.startsWith('blob:') || uri.startsWith('data:')) {
-    // Web: fetch the blob from the blob URL
     const res = await fetch(uri);
     const blob = await res.blob();
     formData.append('file', blob, 'recording.webm');
   } else {
-    // Native: pass the file URI directly
     formData.append('file', { uri, name: 'recording.m4a', type: 'audio/m4a' } as any);
   }
 
@@ -64,17 +63,21 @@ export async function transcribeAudio(uri: string): Promise<string> {
   return (data.text as string).trim();
 }
 
-export async function extractProfile(history: Message[]): Promise<BigFive> {
+export async function extractProfile(history: Message[], existingNotes: string | null): Promise<BigFive> {
   const userText = history
     .filter((m) => m.role === 'user')
     .map((m) => m.content)
     .join('\n\n');
 
+  const input = existingNotes
+    ? `Existing notes: ${existingNotes}\n\nNew messages:\n${userText}`
+    : userText;
+
   const response = await client.chat.complete({
     model: 'mistral-small-latest',
     messages: [
       { role: 'system', content: PROFILE_EXTRACTION_PROMPT },
-      { role: 'user', content: userText },
+      { role: 'user', content: input },
     ],
     responseFormat: { type: 'json_object' },
   });
@@ -83,11 +86,15 @@ export async function extractProfile(history: Message[]): Promise<BigFive> {
   return JSON.parse(text) as BigFive;
 }
 
-export async function chat(history: Message[]): Promise<string> {
+export async function chat(history: Message[], profileContext?: string): Promise<string> {
+  const systemPrompt = profileContext
+    ? `${SYSTEM_PROMPT}\n\nWhat you already know about this user (use this to avoid repeating topics and focus on gaps):\n${profileContext}`
+    : SYSTEM_PROMPT;
+
   const response = await client.chat.complete({
     model: 'mistral-small-latest',
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt },
       ...history,
     ],
   });
