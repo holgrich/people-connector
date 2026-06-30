@@ -61,14 +61,15 @@ export default function ChatScreen() {
     setMessages(newHistory);
     setInput('');
 
-    // Silently update profile every 5 user messages (fire-and-forget)
+    // Silently update profile every 3 user messages (fire-and-forget)
     const userCount = newHistory.filter((m) => m.role === 'user').length;
-    if (userCount > 0 && userCount % 5 === 0) {
-      const existingNotes = profileRef.current?.notes ?? null;
-      extractProfile(newHistory, existingNotes)
-        .then((scores) => {
-          profileRef.current = scores;
-          return saveProfile(scores, userCount);
+    if (userCount > 0 && userCount % 3 === 0) {
+      const existingKnowledge = profileRef.current?.knowledge ?? null;
+      extractProfile(newHistory, existingKnowledge)
+        .then((result) => {
+          const { knowledge, ...scores } = result;
+          if (profileRef.current) profileRef.current = { ...profileRef.current, ...scores, knowledge };
+          return saveProfile(scores, knowledge, userCount);
         })
         .catch(() => {});
     }
