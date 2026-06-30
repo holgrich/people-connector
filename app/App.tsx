@@ -1,9 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import AuthScreen from './screens/AuthScreen';
+import ChatScreen from './screens/ChatScreen';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -24,7 +25,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <Text style={styles.muted}>Loading…</Text>
       </View>
     );
@@ -36,9 +37,14 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>People Connector</Text>
-      <Text style={styles.muted}>Logged in as {session.user.email}</Text>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>People Connector</Text>
+        <TouchableOpacity onPress={() => supabase.auth.signOut()}>
+          <Text style={styles.signOut}>Sign out</Text>
+        </TouchableOpacity>
+      </View>
+      <ChatScreen />
     </View>
   );
 }
@@ -47,16 +53,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: 52,
+  },
+  centered: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
   },
-  title: {
-    fontSize: 24,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  muted: {
+  signOut: {
+    color: '#999',
     fontSize: 14,
-    color: '#666',
+  },
+  muted: {
+    color: '#999',
   },
 });

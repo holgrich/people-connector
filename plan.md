@@ -77,29 +77,27 @@ Users can browse a pool of nearby people (target: within walking/cycling distanc
 
 ## Implementation Phases
 
-### Phase 0 · Foundation `[ ]`
+### Phase 0 · Foundation `[x]`
 
 - `[x]` Set up project repository (this repo)
 - `[x]` Choose and confirm tech stack: Expo + Supabase + Mistral + Whisper
 - `[x]` Initialize Expo project (`app/` subdirectory, SDK 56, TypeScript)
 - `[x]` Set up Supabase project + connect to app (verified in browser)
-- `[ ]` Get Mistral API key
-- `[ ]` Get OpenAI API key (for Whisper)
-- `[ ]` Email auth: sign up, log in, log out (via Supabase Auth) ← *current*
-- `[ ]` Basic app shell: tab/screen navigation skeleton
+- `[x]` Get Mistral API key
+- `[ ]` Get OpenAI API key (for Whisper) — deferred until microphone dev build is ready
+- `[x]` Email auth: sign up, log in, log out (via Supabase Auth) — verified, user visible in Supabase dashboard
 
 > **Note on device testing:** Expo Go on App Store doesn't support SDK 56 yet. Using browser (`npx expo start --web`) for now. A development build (requires Xcode) will be needed before testing native features like microphone.
 
 ---
 
-### Phase 1 · AI Q&A Screen (Product 1, no profile yet)
+### Phase 1 · AI Q&A Screen (Product 1, no profile yet) ← *current*
 
 - `[ ]` Screen: question display + text input + submit
-- `[ ]` Voice input → device STT → text field
-- `[ ]` Send user answer to Mistral, receive response
-- `[ ]` Display AI response (text)
-- `[ ]` Basic conversation flow (question → answer → response → next question)
-- `[ ]` Define initial prompt/logic for Mistral (question generation style, response style)
+- `[ ]` Send user answer to Mistral, receive next question + optional fun response
+- `[ ]` Display conversation (scrollable chat-like view)
+- `[ ]` Define Mistral prompt: entertaining question style, occasional witty reply
+- `[ ]` Voice input → STT → text field (deferred until dev build)
 
 ---
 
@@ -159,4 +157,4 @@ Users can browse a pool of nearby people (target: within walking/cycling distanc
 
 ---
 
-*Last updated: 2026-06-30 (session 2 — stack reconsidered; recommended Expo + Supabase; no-chat philosophy set)*
+*Last updated: 2026-06-30 (Phase 0 complete — auth working, Mistral key added, starting Phase 1)*
