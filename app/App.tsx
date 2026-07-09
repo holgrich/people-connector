@@ -3,17 +3,19 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
+import type { Question } from './lib/questions';
 import AuthScreen from './screens/AuthScreen';
+import QuestionCardScreen from './screens/QuestionCardScreen';
 import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
 
-type Tab = 'chat' | 'profile';
+type Tab = 'questions' | 'profile';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('chat');
-  const [chatKey, setChatKey] = useState(0);
+  const [tab, setTab] = useState<Tab>('questions');
+  const [chatQuestion, setChatQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,44 +38,47 @@ export default function App() {
     );
   }
 
-  if (!session) {
-    return <AuthScreen />;
+  if (!session) return <AuthScreen />;
+
+  // Chat mode: opened via "Chat about this" on a question card
+  if (chatQuestion) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setChatQuestion(null)}>
+            <Text style={styles.back}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>{chatQuestion.text}</Text>
+        </View>
+        <ChatScreen initialPrompt={chatQuestion.text} />
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>People Connector</Text>
           <Text style={styles.email}>{session.user.email}</Text>
         </View>
-        <View style={styles.headerActions}>
-          {tab === 'chat' && (
-            <>
-              <TouchableOpacity onPress={() => setChatKey((k) => k + 1)}>
-                <Text style={styles.action}>New chat</Text>
-              </TouchableOpacity>
-              <Text style={styles.separator}>·</Text>
-            </>
-          )}
-          <TouchableOpacity onPress={() => supabase.auth.signOut()}>
-            <Text style={styles.action}>Sign out</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => supabase.auth.signOut()}>
+          <Text style={styles.action}>Sign out</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
-        {tab === 'chat'
-          ? <ChatScreen key={chatKey} />
+        {tab === 'questions'
+          ? <QuestionCardScreen onChatAboutThis={(q) => setChatQuestion(q)} />
           : <ProfileScreen />
         }
       </View>
 
       <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tab} onPress={() => setTab('chat')}>
-          <Text style={[styles.tabLabel, tab === 'chat' && styles.tabActive]}>Chat</Text>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab('questions')}>
+          <Text style={[styles.tabLabel, tab === 'questions' && styles.tabActive]}>Questions</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tab} onPress={() => setTab('profile')}>
           <Text style={[styles.tabLabel, tab === 'profile' && styles.tabActive]}>Profile</Text>
@@ -106,23 +111,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    flex: 1,
   },
   email: {
     fontSize: 11,
     color: '#999',
     marginTop: 1,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  back: {
+    fontSize: 15,
+    color: '#000',
+    marginRight: 12,
   },
   action: {
     color: '#999',
     fontSize: 14,
-  },
-  separator: {
-    color: '#ccc',
   },
   content: {
     flex: 1,

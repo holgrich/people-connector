@@ -12,12 +12,16 @@ import {
   View,
 } from 'react-native';
 import { chat, extractProfile, transcribeAudio, type Message } from '../lib/mistral';
-import { buildProfileContext, loadProfile, saveProfile, type BigFive, type Profile } from '../lib/profiles';
+import { buildProfileContext, loadProfile, saveProfile, type Profile } from '../lib/profiles';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 
 type UIMessage = Message & { id: string };
 
-export default function ChatScreen() {
+type Props = {
+  initialPrompt?: string;
+};
+
+export default function ChatScreen({ initialPrompt }: Props) {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +34,14 @@ export default function ChatScreen() {
     loadProfile().then((profile) => {
       profileRef.current = profile;
       const context = profile ? buildProfileContext(profile) : undefined;
-      sendToAI([], context);
+      if (initialPrompt) {
+        // Seed the conversation with the question as the first user message
+        const seed: UIMessage[] = [{ id: '0', role: 'user', content: initialPrompt }];
+        setMessages(seed);
+        sendToAI(seed, context);
+      } else {
+        sendToAI([], context);
+      }
     });
   }, []);
 
