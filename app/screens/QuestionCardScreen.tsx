@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { fetchNextQuestion, saveAnswer, type Question } from '../lib/questions';
+import { fetchNextQuestion, markAnswered, type Question } from '../lib/questions';
 import { transcribeAudio } from '../lib/mistral';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 
@@ -41,7 +41,7 @@ export default function QuestionCardScreen({ onChatAboutThis }: Props) {
   async function handleSubmit() {
     if (!input.trim() || !question) return;
     setSubmitting(true);
-    await saveAnswer(question.id, input.trim());
+    await markAnswered(question, input.trim());
     setSubmitting(false);
     loadNext();
   }

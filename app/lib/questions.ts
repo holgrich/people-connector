@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { extractProfileFromAnswer } from './mistral';
+import { saveProfile, loadProfile } from './profiles';
 
 export type Question = {
   id: string;
@@ -11,38 +13,43 @@ export async function fetchNextQuestion(): Promise<Question | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Get IDs the user has already answered
-  const { data: answered } = await supabase
+  const { data: seen } = await supabase
     .from('user_answers')
     .select('question_id')
     .eq('user_id', user.id);
 
-  const answeredIds = (answered ?? []).map((r) => r.question_id);
+  const seenIds = (seen ?? []).map((r) => r.question_id);
 
-  // Pick a random unanswered approved question
   let query = supabase
     .from('questions')
     .select('id, text, category, big_five_dimension')
     .eq('approved', true);
 
-  if (answeredIds.length > 0) {
-    query = query.not('id', 'in', `(${answeredIds.join(',')})`);
+  if (seenIds.length > 0) {
+    query = query.not('id', 'in', `(${seenIds.join(',')})`);
   }
 
   const { data } = await query;
   if (!data || data.length === 0) return null;
 
-  // Pick randomly from the results
   return data[Math.floor(Math.random() * data.length)] as Question;
 }
 
-export async function saveAnswer(questionId: string, answer: string): Promise<void> {
+export async function markAnswered(question: Question, answer: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
+  // Mark question as seen (no answer stored)
   await supabase.from('user_answers').upsert({
     user_id: user.id,
-    question_id: questionId,
-    answer,
+    question_id: question.id,
   });
+
+  // Extract profile signals from the answer in the background
+  loadProfile().then((profile) => {
+    const existingKnowledge = profile?.knowledge ?? null;
+    const messageCount = (profile?.message_count ?? 0) + 1;
+    return extractProfileFromAnswer(question.text, answer, existingKnowledge)
+      .then(({ knowledge, ...scores }) => saveProfile(scores, knowledge, messageCount));
+  }).catch(() => {});
 }

@@ -1,5 +1,5 @@
 import { Mistral } from '@mistralai/mistralai';
-import type { BigFive, Knowledge, Profile } from './profiles';
+import type { BigFive, Knowledge } from './profiles';
 import { familiarityLevel } from './profiles';
 
 const client = new Mistral({
@@ -82,6 +82,28 @@ export async function transcribeAudio(uri: string): Promise<string> {
   if (!res.ok) throw new Error(`Voxtral error: ${await res.text()}`);
   const data = await res.json();
   return (data.text as string).trim();
+}
+
+export async function extractProfileFromAnswer(
+  question: string,
+  answer: string,
+  existingKnowledge: Knowledge | null,
+): Promise<BigFive & { knowledge: Knowledge }> {
+  const input = existingKnowledge
+    ? `Existing knowledge:\n${JSON.stringify(existingKnowledge, null, 2)}\n\nQuestion asked: ${question}\nUser's answer: ${answer}`
+    : `Question asked: ${question}\nUser's answer: ${answer}`;
+
+  const response = await client.chat.complete({
+    model: 'mistral-small-latest',
+    messages: [
+      { role: 'system', content: PROFILE_EXTRACTION_PROMPT },
+      { role: 'user', content: input },
+    ],
+    responseFormat: { type: 'json_object' },
+  });
+
+  const text = response.choices?.[0]?.message?.content as string;
+  return JSON.parse(text) as BigFive & { knowledge: Knowledge };
 }
 
 export async function extractProfile(
