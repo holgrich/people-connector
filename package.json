@@ -1,0 +1,28 @@
+{
+  "name": "people-connector",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holgrich/people-connector.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/holgrich/people-connector/issues"
+  },
+  "homepage": "https://github.com/holgrich/people-connector#readme",
+  "devDependencies": {
+    "@mistralai/mistralai": "^2.4.1",
+    "@supabase/supabase-js": "^2.110.2",
+    "@types/node": "^26.1.1",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.23.0"
+  }
+}
